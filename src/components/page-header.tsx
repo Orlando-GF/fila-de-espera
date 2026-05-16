@@ -8,12 +8,12 @@ export function PageHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mb-4 flex flex-col gap-3 border-b border-[var(--border)] pb-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 className="text-2xl font-semibold tracking-normal text-slate-950 sm:text-3xl">
+        <h1 className="text-xl font-bold tracking-normal text-[var(--foreground)]">
           {title}
         </h1>
-        {description ? <p className="mt-2 max-w-3xl text-sm text-slate-600">{description}</p> : null}
+        {description ? <p className="mt-1 max-w-3xl text-xs font-medium text-[var(--muted)]">{description}</p> : null}
       </div>
       {action}
     </div>

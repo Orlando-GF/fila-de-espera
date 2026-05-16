@@ -14,10 +14,10 @@ import {
 import { labelize } from "@/lib/formatters";
 
 const inputClass =
-  "h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
+  "h-9 w-full rounded-md border border-[var(--border)] bg-white px-2.5 text-xs font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[var(--primary)] focus:ring-2 focus:ring-emerald-100";
 const selectClass =
-  "select-control h-11 w-full rounded-lg border border-slate-300 px-3 pr-16 text-sm text-slate-950 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
-const labelClass = "text-sm font-medium text-slate-700";
+  "select-control h-9 w-full rounded-md border border-[var(--border)] px-2.5 pr-10 text-xs font-semibold text-slate-950 outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-emerald-100";
+const labelClass = "text-xs font-bold text-slate-700";
 
 function Field({
   label,
@@ -37,7 +37,7 @@ function Field({
   const inputMode = mode ?? (type === "text" ? "title" : "free");
 
   return (
-    <label className="grid gap-2">
+    <label className="grid gap-1.5">
       <span className={labelClass}>{label}</span>
       <input
         className={inputClass}
@@ -54,7 +54,7 @@ function Field({
         onChange={(event) => {
           if (inputMode === "digits") event.currentTarget.value = onlyDigits(event.currentTarget.value);
           if (inputMode === "phone") event.currentTarget.value = formatPhone(event.currentTarget.value);
-          if (inputMode === "title") event.currentTarget.value = stripDigits(event.currentTarget.value);
+          if (inputMode === "title") event.currentTarget.value = capitalizeWords(stripDigits(event.currentTarget.value));
         }}
       />
     </label>
@@ -66,11 +66,13 @@ export function SolicitationForm({
   initialData,
   options,
   mode = "create",
+  variant = "page",
 }: {
   action: (formData: FormData) => void | Promise<void>;
   initialData?: FilaEspera;
   options: RegistryOptions;
   mode?: "create" | "edit";
+  variant?: "page" | "panel";
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const initialProntuario = initialData?.prontuario ?? "";
@@ -123,17 +125,25 @@ export function SolicitationForm({
     telefone: initialData?.telefone ?? "",
     responsavel: initialData?.responsavel ?? "",
   };
+  const isPanel = variant === "panel";
 
   return (
-    <form action={action} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+    <form
+      action={action}
+      className={
+        isPanel
+          ? "grid gap-3"
+          : "rounded-lg border border-[var(--border)] bg-white p-3 shadow-sm"
+      }
+    >
       <input type="hidden" name="paciente_id" value={foundPatient?.id ?? ""} />
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 md:col-span-2">
-          <label className="grid gap-2">
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-lg border border-emerald-200 bg-[#e7f8f1] p-3 md:col-span-2">
+          <label className="grid gap-1.5">
             <span className={labelClass}>Prontuário</span>
             <div className="relative">
               <input
-                className={`${inputClass} pr-11`}
+                className={`${inputClass} pr-10`}
                 name="prontuario"
                 value={prontuario}
                 onChange={(event) => {
@@ -148,18 +158,18 @@ export function SolicitationForm({
                 placeholder="Digite o número do prontuário"
                 autoFocus
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500">
                 {lookupState === "loading" ? (
-                  <Loader2 className="animate-spin" size={18} aria-hidden="true" />
+                  <Loader2 className="animate-spin" size={16} aria-hidden="true" />
                 ) : lookupState === "found" ? (
-                  <CheckCircle2 className="text-emerald-700" size={18} aria-hidden="true" />
+                  <CheckCircle2 className="text-emerald-700" size={16} aria-hidden="true" />
                 ) : (
-                  <Search size={18} aria-hidden="true" />
+                  <Search size={16} aria-hidden="true" />
                 )}
               </span>
             </div>
           </label>
-          <p className="mt-2 text-sm text-slate-700">
+          <p className="mt-2 text-xs font-medium text-slate-700">
             {lookupState === "found"
               ? "Paciente encontrado. Confira os dados e siga com os dados da solicitação."
               : lookupState === "not-found"
@@ -169,17 +179,17 @@ export function SolicitationForm({
         </div>
         <div
           key={foundPatient?.id ?? `novo-${prontuario}`}
-          className="rounded-lg border border-slate-200 bg-slate-50 p-4 md:col-span-2"
+          className="rounded-lg border border-[var(--border)] bg-[#f8fbfb] p-3 md:col-span-2"
         >
           <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm font-semibold text-slate-900">Dados do paciente</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs font-bold text-slate-900">Dados do paciente</p>
+            <p className="text-xs font-medium text-[var(--muted)]">
               {foundPatient
                 ? "Dados recuperados pelo prontuário."
                 : "Preencha quando o prontuário ainda não existir no cadastro."}
             </p>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2">
             <Field
               label="Nome do paciente"
               name="nome_paciente"
@@ -190,14 +200,14 @@ export function SolicitationForm({
             <Field label="Responsável" name="responsavel" defaultValue={patientDefaults.responsavel} />
           </div>
         </div>
-        <section className="rounded-lg border border-slate-200 bg-white p-4 md:col-span-2">
-          <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <section className="rounded-lg border border-[var(--border)] bg-white p-3 md:col-span-2">
+          <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-slate-900">Dados da solicitação</h2>
-              <p className="mt-1 text-xs text-slate-500">Data, área, procedimento e prioridade da guia.</p>
+              <h2 className="text-xs font-bold text-slate-900">Dados da solicitação</h2>
+              <p className="mt-1 text-xs font-medium text-[var(--muted)]">Data, área, procedimento e prioridade da guia.</p>
             </div>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <Field
               label="Data de entrada"
               name="data_entrada"
@@ -205,7 +215,7 @@ export function SolicitationForm({
               required
               defaultValue={initialData?.data_entrada ?? today}
             />
-            <label className="grid gap-2">
+            <label className="grid gap-1.5">
               <span className={labelClass}>Especialidade</span>
               <select
                 className={selectClass}
@@ -222,7 +232,7 @@ export function SolicitationForm({
                 ))}
               </select>
             </label>
-            <label className="grid gap-2">
+            <label className="grid gap-1.5">
               <span className={labelClass}>Procedimento</span>
               <select className={selectClass} name="procedimento_id" required defaultValue={initialData?.procedimento_id ?? ""}>
                 <option value="">Selecione</option>
@@ -233,7 +243,7 @@ export function SolicitationForm({
                 ))}
               </select>
             </label>
-            <label className="grid gap-2">
+            <label className="grid gap-1.5">
               <span className={labelClass}>Prioridade</span>
               <select className={selectClass} name="prioridade" defaultValue={initialData?.prioridade ?? "normal"}>
                 {PRIORITIES.map((priority) => (
@@ -243,7 +253,7 @@ export function SolicitationForm({
                 ))}
               </select>
             </label>
-            <label className="grid gap-2 xl:col-span-2">
+            <label className="grid gap-1.5 xl:col-span-2">
               <span className={labelClass}>Profissional solicitante</span>
               <select
                 className={selectClass}
@@ -259,31 +269,31 @@ export function SolicitationForm({
                 ))}
               </select>
             </label>
-            <label className="flex h-11 items-center gap-3 self-end rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700">
+            <label className="flex h-9 items-center gap-2 self-end rounded-md border border-[var(--border)] bg-white px-2.5 text-xs font-bold text-slate-700">
               <input
                 type="checkbox"
                 name="judicial"
                 defaultChecked={initialData?.judicial ?? false}
-                className="size-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                className="size-4 rounded border-slate-300 text-[var(--primary)] focus:ring-emerald-500"
               />
               Demanda judicial
             </label>
-          {mode === "edit" ? (
-          <label className="grid gap-2">
-              <span className={labelClass}>Status</span>
-            <select className={selectClass} name="status" defaultValue={initialData?.status ?? "aguardando"}>
-              {options.status.map((status) => (
-                <option key={status.codigo} value={status.codigo}>
-                  {status.nome}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
-            <label className="grid gap-2 md:col-span-2 xl:col-span-4">
+            {mode === "edit" ? (
+              <label className="grid gap-1.5">
+                <span className={labelClass}>Status</span>
+                <select className={selectClass} name="status" defaultValue={initialData?.status ?? "aguardando"}>
+                  {options.status.map((status) => (
+                    <option key={status.codigo} value={status.codigo}>
+                      {status.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            <label className="grid gap-1.5 md:col-span-2 xl:col-span-4">
               <span className={labelClass}>Observação</span>
               <textarea
-                className="min-h-24 w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                className="min-h-20 w-full rounded-md border border-[var(--border)] bg-white px-2.5 py-2 text-xs font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[var(--primary)] focus:ring-2 focus:ring-emerald-100"
                 name="observacao"
                 defaultValue={initialData?.observacao ?? ""}
               />
@@ -291,15 +301,15 @@ export function SolicitationForm({
           </div>
         </section>
       </div>
-      <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Link
           href="/cadastros"
-          className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          className={isPanel ? "hidden" : "inline-flex h-9 items-center justify-center rounded-md border border-[var(--border)] bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50"}
         >
           Cadastros
         </Link>
-        <button className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700">
-          <Save size={17} aria-hidden="true" />
+        <button className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-[var(--primary)] px-3 text-xs font-bold text-white transition hover:bg-[var(--primary-strong)]">
+          <Save size={15} aria-hidden="true" />
           Salvar
         </button>
       </div>

@@ -1,8 +1,7 @@
 export function capitalizeWords(value: string) {
   return value
-    .toLocaleLowerCase("pt-BR")
     .replace(/\s+/g, " ")
-    .replace(/(^|\s|[-'])\p{L}/gu, (match) => match.toLocaleUpperCase("pt-BR"));
+    .toLocaleUpperCase("pt-BR");
 }
 
 export function onlyDigits(value: string) {

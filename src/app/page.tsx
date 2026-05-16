@@ -26,73 +26,73 @@ export default async function DashboardPage({ searchParams }: Props) {
         action={
           <Link
             href="/nova-solicitacao"
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-[var(--primary)] px-3 text-xs font-semibold text-white transition hover:bg-[var(--primary-strong)]"
           >
-            <PlusCircle size={18} aria-hidden="true" />
+            <PlusCircle size={15} aria-hidden="true" />
             Nova solicitação
           </Link>
         }
       />
       {stats.configMissing ? <ConfigWarning /> : null}
       {message ? (
-        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+        <div className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
           {message}
         </div>
       ) : null}
       {error ? (
-        <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">
+        <div className="mb-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800">
           {error}
         </div>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-3 lg:grid-cols-3">
         <StatCard label="Total aguardando" value={stats.totalAguardando} helper="Solicitações na fila ativa" />
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Por especialidade</p>
-          <div className="mt-4 grid gap-3">
+        <section className="rounded-lg border border-[var(--border)] bg-white p-3 shadow-sm">
+          <p className="text-xs font-bold text-[var(--muted)]">Por especialidade</p>
+          <div className="mt-3 grid gap-2">
             {stats.byEspecialidade.length ? (
               stats.byEspecialidade.map((item) => (
                 <div key={item.especialidade} className="flex items-center justify-between gap-3">
-                  <span className="text-sm text-slate-700">{item.especialidade}</span>
-                  <span className="rounded-md bg-slate-100 px-2 py-1 text-sm font-semibold text-slate-900">
+                  <span className="text-xs font-semibold text-slate-700">{item.especialidade}</span>
+                  <span className="rounded bg-[#eef6f4] px-1.5 py-0.5 text-xs font-bold text-[var(--foreground)]">
                     {item.total}
                   </span>
                 </div>
               ))
             ) : (
-              <p className="text-sm text-slate-500">Sem pacientes aguardando.</p>
+              <p className="text-xs font-medium text-[var(--muted)]">Sem pacientes aguardando.</p>
             )}
           </div>
         </section>
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Por status</p>
-          <div className="mt-4 flex flex-wrap gap-2">
+        <section className="rounded-lg border border-[var(--border)] bg-white p-3 shadow-sm">
+          <p className="text-xs font-bold text-[var(--muted)]">Por status</p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
             {stats.byStatus.length ? (
               stats.byStatus.map((item) => (
-                <span key={item.status} className="inline-flex items-center gap-2">
+                <span key={item.status} className="inline-flex items-center gap-1.5">
                   <StatusBadge status={item.status} />
-                  <span className="text-sm font-semibold text-slate-700">{item.total}</span>
+                  <span className="text-xs font-bold text-slate-700">{item.total}</span>
                 </span>
               ))
             ) : (
-              <p className="text-sm text-slate-500">Sem registros.</p>
+              <p className="text-xs font-medium text-[var(--muted)]">Sem registros.</p>
             )}
           </div>
         </section>
       </div>
 
-      <section className="mt-6">
+      <section className="mt-5">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-slate-950">Próximo paciente por especialidade</h2>
-          <Link href="/lista-espera" className="text-sm font-semibold text-emerald-700 hover:text-emerald-800">
+          <h2 className="text-sm font-bold text-[var(--foreground)]">Próximo paciente por especialidade</h2>
+          <Link href="/lista-espera" className="text-xs font-bold text-[var(--primary)] hover:text-[var(--primary-strong)]">
             Ver lista completa
           </Link>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {stats.nextByEspecialidade.length ? (
             stats.nextByEspecialidade.map((patient) => <NextPatientCard key={patient.id} patient={patient} />)
           ) : (
-            <div className="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
+            <div className="rounded-lg border border-[var(--border)] bg-white p-4 text-xs font-medium text-[var(--muted)] shadow-sm">
               Nenhum paciente aguardando no momento.
             </div>
           )}

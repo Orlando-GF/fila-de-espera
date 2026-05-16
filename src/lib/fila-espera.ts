@@ -27,9 +27,15 @@ const emptyStats: DashboardStats = {
   configMissing: false,
 };
 
+export const WAITLIST_PAGE_SIZE = 25;
+
 function clean(value?: string) {
   const trimmed = value?.trim();
   return trimmed || undefined;
+}
+
+function searchTerm(value: string) {
+  return value.replace(/[,%]/g, " ").replace(/\s+/g, " ").trim();
 }
 
 async function withStatusLabels(rows: FilaEspera[]) {
@@ -95,19 +101,34 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   };
 }
 
-export async function getWaitlist(filters: FilaFilters = {}) {
+export async function getWaitlist(filters: FilaFilters = {}, page = 1) {
   if (!isSupabaseConfigured()) {
-    return { rows: [] as FilaEspera[], configMissing: true };
+    return {
+      rows: [] as FilaEspera[],
+      configMissing: true,
+      page: 1,
+      pageSize: WAITLIST_PAGE_SIZE,
+      total: 0,
+      totalPages: 1,
+    };
   }
 
   const supabase = await createSupabaseServerClient();
+  const safePage = Math.max(1, page);
+  const from = (safePage - 1) * WAITLIST_PAGE_SIZE;
+  const to = from + WAITLIST_PAGE_SIZE - 1;
   let query = supabase
     .from("fila_espera")
-    .select("*")
+    .select("*", { count: "exact" })
     .order("data_entrada", { ascending: true })
     .order("criado_em", { ascending: true })
-    .order("id", { ascending: true });
+    .order("id", { ascending: true })
+    .range(from, to);
 
+  if (clean(filters.busca)) {
+    const term = searchTerm(clean(filters.busca) ?? "");
+    query = query.or(`nome_paciente.ilike.%${term}%,prontuario.ilike.%${term}%`);
+  }
   if (clean(filters.especialidade)) {
     query = query.eq("especialidade", clean(filters.especialidade));
   }
@@ -127,10 +148,18 @@ export async function getWaitlist(filters: FilaFilters = {}) {
     query = query.eq("judicial", false);
   }
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) throw error;
+  const total = count ?? 0;
 
-  return { rows: await withStatusLabels((data ?? []) as FilaEspera[]), configMissing: false };
+  return {
+    rows: await withStatusLabels((data ?? []) as FilaEspera[]),
+    configMissing: false,
+    page: safePage,
+    pageSize: WAITLIST_PAGE_SIZE,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / WAITLIST_PAGE_SIZE)),
+  };
 }
 
 export async function getSolicitation(id: string) {

@@ -1,21 +1,32 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f8fb;
-  --foreground: #18212f;
+  --background: #f4f7f8;
+  --foreground: #102027;
+  --surface: #ffffff;
+  --surface-soft: #eef6f4;
+  --border: #d7e2e4;
+  --muted: #587074;
+  --primary: #008c6a;
+  --primary-strong: #00775a;
+  --sidebar: #102a2c;
+  --sidebar-muted: #9fb6b8;
+  --accent-blue: #2563eb;
+  --warning: #d97706;
+  --danger: #dc2626;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-plex-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-plex-sans), Arial, Helvetica, sans-serif;
 }
 
 button,
@@ -35,7 +46,27 @@ button {
   -moz-appearance: none;
   background-color: #ffffff;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-position: right 22px center;
+  background-position: right 14px center;
   background-repeat: no-repeat;
   background-size: 18px 18px;
+}
+
+.app-uppercase {
+  text-transform: uppercase;
+}
+
+.app-uppercase input,
+.app-uppercase select,
+.app-uppercase textarea {
+  text-transform: uppercase;
+}
+
+.app-uppercase input[type="email"],
+.app-uppercase input[type="password"] {
+  text-transform: none;
+}
+
+.app-surface {
+  background: var(--surface);
+  border-color: var(--border);
 }

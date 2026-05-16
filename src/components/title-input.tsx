@@ -11,9 +11,8 @@ export function TitleInput({ allowNumbers = false, onBlur, onChange, ...props }:
     <input
       {...props}
       onChange={(event) => {
-        if (!allowNumbers) {
-          event.currentTarget.value = event.currentTarget.value.replace(/\d/g, "");
-        }
+        const value = allowNumbers ? event.currentTarget.value : event.currentTarget.value.replace(/\d/g, "");
+        event.currentTarget.value = capitalizeWords(value);
         onChange?.(event);
       }}
       onBlur={(event) => {

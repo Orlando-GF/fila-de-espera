@@ -39,6 +39,7 @@ export type FilaEspera = {
 };
 
 export type FilaFilters = {
+  busca?: string;
   especialidade?: string;
   procedimento?: string;
   status?: string;

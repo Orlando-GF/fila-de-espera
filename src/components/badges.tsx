@@ -2,9 +2,9 @@ import { labelize } from "@/lib/formatters";
 import type { Prioridade } from "@/lib/types";
 
 const statusClass: Record<string, string> = {
-  aguardando: "bg-sky-50 text-sky-800 ring-sky-200",
+  aguardando: "bg-blue-50 text-blue-800 ring-blue-200",
   chamado: "bg-emerald-50 text-emerald-800 ring-emerald-200",
-  agendado: "bg-indigo-50 text-indigo-800 ring-indigo-200",
+  agendado: "bg-cyan-50 text-cyan-800 ring-cyan-200",
   atendido: "bg-slate-100 text-slate-700 ring-slate-200",
   faltou: "bg-orange-50 text-orange-800 ring-orange-200",
   cancelado: "bg-rose-50 text-rose-800 ring-rose-200",
@@ -20,8 +20,8 @@ const priorityClass: Record<Prioridade, string> = {
 
 function Badge({ label, className }: { label: string; className: string }) {
   return (
-    <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold ring-1 ${className}`}>
-      {label}
+    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold ring-1 ${className}`}>
+      {label.toLocaleUpperCase("pt-BR")}
     </span>
   );
 }
@@ -35,5 +35,5 @@ export function PriorityBadge({ prioridade }: { prioridade: Prioridade }) {
 }
 
 export function JudicialBadge() {
-  return <Badge label="Judicial" className="bg-purple-50 text-purple-800 ring-purple-200" />;
+  return <Badge label="Judicial" className="bg-blue-50 text-blue-800 ring-blue-200" />;
 }

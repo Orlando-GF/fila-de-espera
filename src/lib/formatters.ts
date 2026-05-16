@@ -21,5 +21,5 @@ export function formatDateTime(value: string | null | undefined) {
 
 export function labelize(value: string | null | undefined) {
   if (!value) return "-";
-  return value.charAt(0).toUpperCase() + value.slice(1).replaceAll("_", " ");
+  return value.replaceAll("_", " ").toLocaleUpperCase("pt-BR");
 }

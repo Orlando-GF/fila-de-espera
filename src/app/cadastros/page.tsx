@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { Check, Plus, Trash2 } from "lucide-react";
+import type { ReactNode } from "react";
 import {
   createEspecialidade,
   createProcedimento,
@@ -9,14 +12,94 @@ import {
 } from "@/app/actions";
 import { AppShell } from "@/components/app-shell";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
-import { PageHeader } from "@/components/page-header";
 import { TitleInput } from "@/components/title-input";
 import { getRegistryOptions } from "@/lib/fila-espera";
 
 const inputClass =
-  "h-9 w-full rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-950 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
+  "h-8 min-w-0 rounded-md border border-[var(--border)] bg-white px-2.5 text-xs font-semibold text-[var(--foreground)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-emerald-100";
 
-function RegistryPanel({
+const registrySections = [
+  {
+    key: "especialidades",
+    label: "Especialidades",
+    description: "Áreas de atendimento disponíveis para selecionar na solicitação.",
+  },
+  {
+    key: "procedimentos",
+    label: "Procedimentos",
+    description: "Lista única de procedimentos, sem vínculo fixo com especialidade.",
+  },
+  {
+    key: "profissionais",
+    label: "Profissionais solicitantes",
+    description: "Profissionais, equipes ou origens que encaminham solicitações.",
+  },
+  {
+    key: "status",
+    label: "Status da fila",
+    description: "Textos exibidos na fila; o código interno fica preservado.",
+  },
+] as const;
+
+type RegistrySection = (typeof registrySections)[number]["key"];
+
+function activeRegistrySection(value?: string): RegistrySection {
+  return registrySections.some((section) => section.key === value)
+    ? (value as RegistrySection)
+    : "especialidades";
+}
+
+function sectionPath(section: RegistrySection) {
+  return `/cadastros?tipo=${section}`;
+}
+
+function AddButton() {
+  return (
+    <button className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md bg-[var(--primary)] px-3 text-xs font-semibold text-white transition hover:bg-[var(--primary-strong)]">
+      <Plus size={14} aria-hidden="true" />
+      Adicionar
+    </button>
+  );
+}
+
+function SaveButton() {
+  return (
+    <button className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-[var(--border)] bg-white px-3 text-xs font-semibold text-[var(--foreground)] transition hover:bg-slate-50">
+      <Check size={14} aria-hidden="true" />
+      Salvar
+    </button>
+  );
+}
+
+function DeleteButton({
+  kind,
+  id,
+  returnTo,
+}: {
+  kind: string;
+  id: string;
+  returnTo: string;
+}) {
+  return (
+    <form action={deleteRegistryItem}>
+      <input type="hidden" name="kind" value={kind} />
+      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="return_to" value={returnTo} />
+      <ConfirmSubmitButton
+        dialogTitle="Excluir cadastro"
+        message="Deseja realmente excluir este cadastro da lista? Se ele estiver em uso na fila, o sistema vai bloquear a exclusão."
+        confirmLabel="Excluir"
+        className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50"
+        title="Excluir"
+      >
+        <Trash2 size={14} aria-hidden="true" />
+        Excluir
+      </ConfirmSubmitButton>
+    </form>
+  );
+}
+
+function RegistryShell({
   title,
   description,
   count,
@@ -25,41 +108,61 @@ function RegistryPanel({
   title: string;
   description: string;
   count: number;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <section className="flex min-h-[260px] flex-col rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 px-4 py-3">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-semibold text-slate-950">{title}</h2>
-            <p className="mt-1 text-xs text-slate-500">{description}</p>
-          </div>
-          <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
-            {count}
-          </span>
+    <section className="min-w-0 rounded-lg border border-[var(--border)] bg-white shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] px-3 py-3">
+        <div>
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">{title}</h2>
+          <p className="mt-1 max-w-2xl text-xs font-medium text-[var(--muted)]">{description}</p>
         </div>
+        <span className="rounded-md bg-[var(--surface-soft)] px-2 py-0.5 text-xs font-semibold text-[var(--muted)]">
+          {count} itens
+        </span>
       </div>
-      <div className="flex flex-1 flex-col gap-3 p-3">{children}</div>
+      {children}
     </section>
   );
 }
 
-function DeleteButton({ kind, id }: { kind: string; id: string }) {
+function RegistryNav({
+  active,
+  counts,
+}: {
+  active: RegistrySection;
+  counts: Record<RegistrySection, number>;
+}) {
   return (
-    <form action={deleteRegistryItem}>
-      <input type="hidden" name="kind" value={kind} />
-      <input type="hidden" name="id" value={id} />
-      <ConfirmSubmitButton
-        dialogTitle="Excluir cadastro"
-        message="Deseja realmente excluir este cadastro da lista? Se ele estiver em uso na fila, o sistema vai bloquear a exclusão."
-        confirmLabel="Excluir"
-        className="h-9 rounded-md border border-rose-200 bg-white px-2.5 text-xs font-semibold text-rose-700 hover:bg-rose-50"
-        title="Excluir"
-      >
-        Excluir
-      </ConfirmSubmitButton>
-    </form>
+    <aside className="rounded-lg border border-[var(--border)] bg-white p-1.5 shadow-sm">
+      <nav className="flex flex-wrap gap-1" aria-label="Tipos de cadastro">
+        {registrySections.map((section) => {
+          const selected = section.key === active;
+          return (
+            <Link
+              key={section.key}
+              href={sectionPath(section.key)}
+              className={[
+                "flex h-8 items-center justify-between gap-2 rounded-md px-2.5 text-xs font-semibold transition",
+                selected
+                  ? "bg-[var(--surface-soft)] text-[var(--primary-strong)]"
+                  : "text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]",
+              ].join(" ")}
+            >
+              <span>{section.label}</span>
+              <span
+                className={[
+                  "rounded px-1.5 py-0.5 text-[11px]",
+                  selected ? "bg-white text-[var(--primary-strong)]" : "bg-[var(--surface-soft)] text-[var(--muted)]",
+                ].join(" ")}
+              >
+                {counts[section.key]}
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
+    </aside>
   );
 }
 
@@ -67,32 +170,49 @@ function SingleFieldRow({
   kind,
   id,
   value,
+  returnTo,
   allowNumbers = false,
   action = updateRegistryItem,
 }: {
   kind: string;
   id: string;
   value: string;
+  returnTo: string;
   allowNumbers?: boolean;
   action?: (formData: FormData) => void | Promise<void>;
 }) {
   return (
-    <div className="grid grid-cols-[1fr_auto_auto] gap-2">
-      <form action={action} className="contents">
-        <input type="hidden" name="kind" value={kind} />
-        <input type="hidden" name="id" value={id} />
-        <TitleInput className={inputClass} name="nome" defaultValue={value} required allowNumbers={allowNumbers} />
-        <button className="h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-          Salvar
-        </button>
-      </form>
-      <DeleteButton kind={kind} id={id} />
+    <div className="border-t border-[var(--border)] px-3 py-2 first:border-t-0">
+      <div className="flex flex-wrap items-center gap-2">
+        <form action={action} className="flex min-w-0 flex-1 items-center gap-2">
+          <input type="hidden" name="kind" value={kind} />
+          <input type="hidden" name="id" value={id} />
+          <input type="hidden" name="return_to" value={returnTo} />
+          <TitleInput
+            className={`${inputClass} flex-1`}
+            name="nome"
+            defaultValue={value}
+            required
+            allowNumbers={allowNumbers}
+          />
+          <SaveButton />
+        </form>
+        <DeleteButton kind={kind} id={id} returnTo={returnTo} />
+      </div>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="m-3 rounded-md border border-dashed border-[var(--border)] bg-[var(--surface-soft)] px-4 py-6 text-center text-xs font-semibold text-[var(--muted)]">
+      Nenhum cadastro ativo nesta lista.
     </div>
   );
 }
 
 type Props = {
-  searchParams?: Promise<{ msg?: string; erro?: string }>;
+  searchParams?: Promise<{ msg?: string; erro?: string; tipo?: string }>;
 };
 
 export default async function RegistriesPage({ searchParams }: Props) {
@@ -100,105 +220,153 @@ export default async function RegistriesPage({ searchParams }: Props) {
   const params = await searchParams;
   const message = params?.msg;
   const error = params?.erro;
+  const activeSection = activeRegistrySection(params?.tipo);
+  const returnTo = sectionPath(activeSection);
+  const counts: Record<RegistrySection, number> = {
+    especialidades: options.especialidades.length,
+    procedimentos: options.procedimentos.length,
+    profissionais: options.profissionais.length,
+    status: options.status.length,
+  };
+  const activeConfig = registrySections.find((section) => section.key === activeSection)!;
 
   return (
     <AppShell>
-      <PageHeader title="Cadastros" description="Manutenção rápida das listas usadas na fila." />
+      <div className="mb-4 border-b border-[var(--border)] pb-3">
+        <h1 className="text-xl font-bold tracking-normal text-[var(--foreground)]">Cadastros</h1>
+        <p className="mt-1 text-xs font-medium text-[var(--muted)]">
+          Manutenção rápida das listas usadas na fila.
+        </p>
+      </div>
+
       {message ? (
-        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+        <div className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
           {message}
         </div>
       ) : null}
       {error ? (
-        <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">
+        <div className="mb-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800">
           {error}
         </div>
       ) : null}
 
-      <div className="grid max-w-7xl gap-4">
-        <RegistryPanel
-          title="Especialidades"
-          description="Áreas de atendimento."
-          count={options.especialidades.length}
-        >
-          <form action={createEspecialidade} className="grid grid-cols-[1fr_auto] gap-2">
-            <TitleInput className={inputClass} name="nome" placeholder="Nova especialidade" required />
-            <button className="h-9 rounded-md bg-emerald-600 px-3 text-sm font-semibold text-white hover:bg-emerald-700">
-              Adicionar
-            </button>
-          </form>
-          <div className="grid max-h-64 gap-2 overflow-y-auto pr-1">
-            {options.especialidades.map((item) => (
-              <SingleFieldRow key={item.id} kind="especialidade" id={item.id} value={item.nome} />
-            ))}
-          </div>
-        </RegistryPanel>
+      <div className="grid max-w-5xl gap-3">
+        <RegistryNav active={activeSection} counts={counts} />
 
-        <RegistryPanel
-          title="Procedimentos"
-          description="Cadastro único, sem vínculo por especialidade."
-          count={options.procedimentos.length}
+        <RegistryShell
+          title={activeConfig.label}
+          description={activeConfig.description}
+          count={counts[activeSection]}
         >
-          <form action={createProcedimento} className="grid grid-cols-[1fr_auto] gap-2">
-            <TitleInput className={inputClass} name="nome" placeholder="Novo procedimento" required allowNumbers />
-            <button className="h-9 rounded-md bg-emerald-600 px-3 text-sm font-semibold text-white hover:bg-emerald-700">
-              Adicionar
-            </button>
-          </form>
-          <div className="grid max-h-64 gap-2 overflow-y-auto pr-1">
-            {options.procedimentos.map((item) => (
-              <SingleFieldRow key={item.id} kind="procedimento" id={item.id} value={item.nome} allowNumbers />
-            ))}
-          </div>
-        </RegistryPanel>
-
-        <RegistryPanel
-          title="Profissionais Solicitantes"
-          description="Profissional, equipe ou origem solicitante."
-          count={options.profissionais.length}
-        >
-          <form action={createProfissionalSolicitante} className="grid grid-cols-[1fr_0.85fr_auto] gap-2">
-            <TitleInput className={inputClass} name="nome" placeholder="Nome ou equipe" required />
-            <TitleInput className={inputClass} name="cargo" placeholder="Cargo/tipo" />
-            <button className="h-9 rounded-md bg-emerald-600 px-3 text-sm font-semibold text-white hover:bg-emerald-700">
-              Adicionar
-            </button>
-          </form>
-          <div className="grid max-h-64 gap-2 overflow-y-auto pr-1">
-            {options.profissionais.map((item) => (
-              <div key={item.id} className="grid grid-cols-[1fr_0.85fr_auto_auto] gap-2">
-                <form action={updateRegistryItem} className="contents">
-                  <input type="hidden" name="kind" value="profissional" />
-                  <input type="hidden" name="id" value={item.id} />
-                  <TitleInput className={inputClass} name="nome" defaultValue={item.nome} required />
-                  <TitleInput className={inputClass} name="cargo" defaultValue={item.cargo ?? ""} />
-                  <button className="h-9 rounded-md border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-                    Salvar
-                  </button>
-                </form>
-                <DeleteButton kind="profissional" id={item.id} />
+          {activeSection === "especialidades" ? (
+            <>
+              <form action={createEspecialidade} className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] p-3">
+                <input type="hidden" name="return_to" value={returnTo} />
+                <TitleInput className={`${inputClass} flex-1`} name="nome" placeholder="Nova especialidade" required />
+                <AddButton />
+              </form>
+              <div>
+                {options.especialidades.length ? (
+                  options.especialidades.map((item) => (
+                    <SingleFieldRow
+                      key={item.id}
+                      kind="especialidade"
+                      id={item.id}
+                      value={item.nome}
+                      returnTo={returnTo}
+                    />
+                  ))
+                ) : (
+                  <EmptyState />
+                )}
               </div>
-            ))}
-          </div>
-        </RegistryPanel>
+            </>
+          ) : null}
 
-        <RegistryPanel
-          title="Status Da Fila"
-          description="Texto exibido; o código interno fica fixo."
-          count={options.status.length}
-        >
-          <form action={createStatusLabel} className="grid grid-cols-[1fr_auto] gap-2">
-            <TitleInput className={inputClass} name="nome" placeholder="Novo status" required />
-            <button className="h-9 rounded-md bg-emerald-600 px-3 text-sm font-semibold text-white hover:bg-emerald-700">
-              Adicionar
-            </button>
-          </form>
-          <div className="grid max-h-64 gap-2 overflow-y-auto pr-1">
-            {options.status.map((item) => (
-              <SingleFieldRow key={item.id} kind="status" id={item.id} value={item.nome} action={updateStatusLabel} />
-            ))}
-          </div>
-        </RegistryPanel>
+          {activeSection === "procedimentos" ? (
+            <>
+              <form action={createProcedimento} className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] p-3">
+                <input type="hidden" name="return_to" value={returnTo} />
+                <TitleInput className={`${inputClass} flex-1`} name="nome" placeholder="Novo procedimento" required allowNumbers />
+                <AddButton />
+              </form>
+              <div>
+                {options.procedimentos.length ? (
+                  options.procedimentos.map((item) => (
+                    <SingleFieldRow
+                      key={item.id}
+                      kind="procedimento"
+                      id={item.id}
+                      value={item.nome}
+                      returnTo={returnTo}
+                      allowNumbers
+                    />
+                  ))
+                ) : (
+                  <EmptyState />
+                )}
+              </div>
+            </>
+          ) : null}
+
+          {activeSection === "profissionais" ? (
+            <>
+              <form action={createProfissionalSolicitante} className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] p-3">
+                <input type="hidden" name="return_to" value={returnTo} />
+                <TitleInput className={`${inputClass} min-w-56 flex-1`} name="nome" placeholder="Nome ou equipe" required />
+                <TitleInput className={`${inputClass} min-w-44 flex-1`} name="cargo" placeholder="Cargo ou tipo" />
+                <AddButton />
+              </form>
+              <div>
+                {options.profissionais.length ? (
+                  options.profissionais.map((item) => (
+                    <div key={item.id} className="border-t border-[var(--border)] px-3 py-2 first:border-t-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <form action={updateRegistryItem} className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                          <input type="hidden" name="kind" value="profissional" />
+                          <input type="hidden" name="id" value={item.id} />
+                          <input type="hidden" name="return_to" value={returnTo} />
+                          <TitleInput className={`${inputClass} min-w-56 flex-1`} name="nome" defaultValue={item.nome} required />
+                          <TitleInput className={`${inputClass} min-w-44 flex-1`} name="cargo" defaultValue={item.cargo ?? ""} />
+                          <SaveButton />
+                        </form>
+                        <DeleteButton kind="profissional" id={item.id} returnTo={returnTo} />
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <EmptyState />
+                )}
+              </div>
+            </>
+          ) : null}
+
+          {activeSection === "status" ? (
+            <>
+              <form action={createStatusLabel} className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] p-3">
+                <input type="hidden" name="return_to" value={returnTo} />
+                <TitleInput className={`${inputClass} flex-1`} name="nome" placeholder="Novo status" required />
+                <AddButton />
+              </form>
+              <div>
+                {options.status.length ? (
+                  options.status.map((item) => (
+                    <SingleFieldRow
+                      key={item.id}
+                      kind="status"
+                      id={item.id}
+                      value={item.nome}
+                      returnTo={returnTo}
+                      action={updateStatusLabel}
+                    />
+                  ))
+                ) : (
+                  <EmptyState />
+                )}
+              </div>
+            </>
+          ) : null}
+        </RegistryShell>
       </div>
     </AppShell>
   );

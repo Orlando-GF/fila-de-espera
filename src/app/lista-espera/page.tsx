@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PlusCircle } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { ConfigWarning } from "@/components/config-warning";
+import { Pagination } from "@/components/pagination";
 import { PageHeader } from "@/components/page-header";
 import { WaitlistFilters } from "@/components/waitlist-filters";
 import { WaitlistTable } from "@/components/waitlist-table";
@@ -16,9 +17,16 @@ function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function pageNumber(value: string | string[] | undefined) {
+  const parsed = Number(first(value) ?? "1");
+  return Number.isFinite(parsed) ? Math.max(1, Math.floor(parsed)) : 1;
+}
+
 export default async function WaitlistPage({ searchParams }: Props) {
   const params = (await searchParams) ?? {};
+  const requestedPage = pageNumber(params.pagina);
   const filters: FilaFilters = {
+    busca: first(params.busca) ?? "",
     especialidade: first(params.especialidade) ?? "",
     procedimento: first(params.procedimento) ?? "",
     status: first(params.status) ?? "",
@@ -28,8 +36,8 @@ export default async function WaitlistPage({ searchParams }: Props) {
   const message = first(params.msg);
   const error = first(params.erro);
 
-  const [{ rows, configMissing }, options] = await Promise.all([
-    getWaitlist(filters),
+  const [{ rows, configMissing, page, pageSize, total, totalPages }, options] = await Promise.all([
+    getWaitlist(filters, requestedPage),
     getFilterOptions(),
   ]);
 
@@ -41,26 +49,27 @@ export default async function WaitlistPage({ searchParams }: Props) {
         action={
           <Link
             href="/nova-solicitacao"
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-[var(--primary)] px-3 text-xs font-semibold text-white transition hover:bg-[var(--primary-strong)]"
           >
-            <PlusCircle size={18} aria-hidden="true" />
+            <PlusCircle size={15} aria-hidden="true" />
             Nova solicitação
           </Link>
         }
       />
       {configMissing ? <ConfigWarning /> : null}
       {message ? (
-        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+        <div className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
           {message}
         </div>
       ) : null}
       {error ? (
-        <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">
+        <div className="mb-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800">
           {error}
         </div>
       ) : null}
       <WaitlistFilters filters={filters} options={options} />
-      <WaitlistTable rows={rows} statuses={options.status} />
+      <WaitlistTable rows={rows} statuses={options.status} startIndex={(page - 1) * pageSize} />
+      <Pagination page={page} pageSize={pageSize} total={total} totalPages={totalPages} params={params} />
     </AppShell>
   );
 }

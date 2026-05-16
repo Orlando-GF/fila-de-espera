@@ -65,6 +65,15 @@ function redirectWithError(path: string, message: string) {
   redirect(`${path}${separator}erro=${encodeURIComponent(message)}`);
 }
 
+function safePath(path: string | null, fallback = "/") {
+  if (!path) return fallback;
+  return path.startsWith("/") && !path.startsWith("//") ? path : fallback;
+}
+
+function returnPath(formData: FormData, fallback = "/cadastros") {
+  return safePath(text(formData, "return_to"), fallback);
+}
+
 function slugStatus(value: string) {
   return value
     .normalize("NFD")
@@ -77,7 +86,7 @@ function slugStatus(value: string) {
 export async function signIn(formData: FormData) {
   const email = requiredText(formData, "email");
   const password = requiredText(formData, "password");
-  const next = text(formData, "next") ?? "/";
+  const next = safePath(text(formData, "next"), "/");
   const supabase = await createSupabaseServerClient();
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -85,7 +94,7 @@ export async function signIn(formData: FormData) {
     redirectWithError(`/login?next=${encodeURIComponent(next)}`, "E-mail ou senha inválidos.");
   }
 
-  redirect(next.startsWith("/") ? next : "/");
+  redirect(next);
 }
 
 export async function signOut() {
@@ -201,7 +210,7 @@ export async function createSolicitation(formData: FormData) {
     ...registries,
     prioridade: requiredText(formData, "prioridade") as Prioridade,
     judicial: formData.get("judicial") === "on",
-    observacao: text(formData, "observacao"),
+    observacao: capitalizeWords(text(formData, "observacao")),
     status: "aguardando" as FilaStatus,
   };
 
@@ -223,7 +232,7 @@ export async function updateSolicitation(id: string, formData: FormData) {
     prioridade: requiredText(formData, "prioridade") as Prioridade,
     status: requiredText(formData, "status") as FilaStatus,
     judicial: formData.get("judicial") === "on",
-    observacao: text(formData, "observacao"),
+    observacao: capitalizeWords(text(formData, "observacao")),
   };
 
   const { error } = await supabase.from("fila_espera").update(payload).eq("id", id);
@@ -237,7 +246,7 @@ export async function updateSolicitation(id: string, formData: FormData) {
 export async function updateStatus(formData: FormData) {
   const id = requiredText(formData, "id");
   const status = requiredText(formData, "status") as FilaStatus;
-  const returnTo = text(formData, "return_to") ?? "/lista-espera";
+  const returnTo = returnPath(formData, "/lista-espera");
   const supabase = await createSupabaseServerClient();
 
   let query = supabase
@@ -292,6 +301,7 @@ export async function callNextPatient(formData: FormData) {
 
 export async function createEspecialidade(formData: FormData) {
   const supabase = await createSupabaseServerClient();
+  const returnTo = returnPath(formData);
   const nome = requiredTitleText(formData, "nome");
   assertNoDigits(nome, "Especialidade");
   const { error } = await supabase
@@ -300,22 +310,24 @@ export async function createEspecialidade(formData: FormData) {
   if (error) throw error;
   revalidatePath("/cadastros");
   revalidatePath("/nova-solicitacao");
-  redirectWithMessage("/cadastros", "Especialidade adicionada com sucesso.");
+  redirectWithMessage(returnTo, "Especialidade adicionada com sucesso.");
 }
 
 export async function createProcedimento(formData: FormData) {
   const supabase = await createSupabaseServerClient();
+  const returnTo = returnPath(formData);
   const { error } = await supabase.from("procedimentos").insert({
     nome: requiredTitleText(formData, "nome"),
   });
   if (error) throw error;
   revalidatePath("/cadastros");
   revalidatePath("/nova-solicitacao");
-  redirectWithMessage("/cadastros", "Procedimento adicionado com sucesso.");
+  redirectWithMessage(returnTo, "Procedimento adicionado com sucesso.");
 }
 
 export async function createProfissionalSolicitante(formData: FormData) {
   const supabase = await createSupabaseServerClient();
+  const returnTo = returnPath(formData);
   const nome = requiredTitleText(formData, "nome");
   const cargo = titleText(formData, "cargo");
   assertNoDigits(nome, "Profissional solicitante");
@@ -327,7 +339,7 @@ export async function createProfissionalSolicitante(formData: FormData) {
   if (error) throw error;
   revalidatePath("/cadastros");
   revalidatePath("/nova-solicitacao");
-  redirectWithMessage("/cadastros", "Profissional solicitante adicionado com sucesso.");
+  redirectWithMessage(returnTo, "Profissional solicitante adicionado com sucesso.");
 }
 
 function registryTable(kind: string) {
@@ -340,6 +352,7 @@ function registryTable(kind: string) {
 
 export async function updateRegistryItem(formData: FormData) {
   const supabase = await createSupabaseServerClient();
+  const returnTo = returnPath(formData);
   const kind = requiredText(formData, "kind");
   const id = requiredText(formData, "id");
   const table = registryTable(kind);
@@ -356,11 +369,12 @@ export async function updateRegistryItem(formData: FormData) {
   revalidatePath("/cadastros");
   revalidatePath("/nova-solicitacao");
   revalidatePath("/lista-espera");
-  redirectWithMessage("/cadastros", "Cadastro atualizado com sucesso.");
+  redirectWithMessage(returnTo, "Cadastro atualizado com sucesso.");
 }
 
 export async function deleteRegistryItem(formData: FormData) {
   const supabase = await createSupabaseServerClient();
+  const returnTo = returnPath(formData);
   const kind = requiredText(formData, "kind");
   const id = requiredText(formData, "id");
   const table = registryTable(kind);
@@ -379,7 +393,7 @@ export async function deleteRegistryItem(formData: FormData) {
       .eq("status", status.codigo);
     if (error) throw error;
     if ((count ?? 0) > 0) {
-      redirectWithError("/cadastros", "Não é possível excluir um status em uso na fila.");
+      redirectWithError(returnTo, "Não é possível excluir um status em uso na fila.");
     }
   }
 
@@ -405,7 +419,7 @@ export async function deleteRegistryItem(formData: FormData) {
       .select("id", { count: "exact", head: true })
       .eq(check.column, id);
     if (error) throw error;
-    if ((count ?? 0) > 0) redirectWithError("/cadastros", check.message);
+    if ((count ?? 0) > 0) redirectWithError(returnTo, check.message);
   }
 
   const { error } = await supabase.from(table).update({ ativo: false }).eq("id", id);
@@ -413,11 +427,12 @@ export async function deleteRegistryItem(formData: FormData) {
   revalidatePath("/cadastros");
   revalidatePath("/nova-solicitacao");
   revalidatePath("/lista-espera");
-  redirectWithMessage("/cadastros", "Cadastro excluído com sucesso.");
+  redirectWithMessage(returnTo, "Cadastro excluído com sucesso.");
 }
 
 export async function createStatusLabel(formData: FormData) {
   const supabase = await createSupabaseServerClient();
+  const returnTo = returnPath(formData);
   const nome = requiredTitleText(formData, "nome");
   const codigo = slugStatus(nome);
 
@@ -429,11 +444,12 @@ export async function createStatusLabel(formData: FormData) {
   revalidatePath("/cadastros");
   revalidatePath("/nova-solicitacao");
   revalidatePath("/lista-espera");
-  redirectWithMessage("/cadastros", "Status adicionado com sucesso.");
+  redirectWithMessage(returnTo, "Status adicionado com sucesso.");
 }
 
 export async function updateStatusLabel(formData: FormData) {
   const supabase = await createSupabaseServerClient();
+  const returnTo = returnPath(formData);
   const id = requiredText(formData, "id");
   const nome = requiredTitleText(formData, "nome");
 
@@ -443,5 +459,5 @@ export async function updateStatusLabel(formData: FormData) {
   revalidatePath("/cadastros");
   revalidatePath("/nova-solicitacao");
   revalidatePath("/lista-espera");
-  redirectWithMessage("/cadastros", "Status atualizado com sucesso.");
+  redirectWithMessage(returnTo, "Status atualizado com sucesso.");
 }
