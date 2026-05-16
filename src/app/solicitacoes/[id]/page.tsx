@@ -11,8 +11,12 @@ import { getRegistryOptions, getSolicitation } from "@/lib/fila-espera";
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ editar?: string; msg?: string; erro?: string }>;
+  searchParams?: Promise<{ editar?: string; msg?: string; erro?: string; return_to?: string }>;
 };
+
+function safeReturnTo(value?: string) {
+  return value?.startsWith("/") && !value.startsWith("//") ? value : undefined;
+}
 
 function DetailItem({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -33,6 +37,13 @@ export default async function SolicitationDetailsPage({ params, searchParams }: 
   const isEditing = query?.editar === "1";
   const message = query?.msg;
   const error = query?.erro;
+  const returnTo = safeReturnTo(query?.return_to);
+  const detailHref = `/solicitacoes/${solicitation.id}`;
+  const currentDetailsHref = returnTo ? `${detailHref}?return_to=${encodeURIComponent(returnTo)}` : detailHref;
+  const backHref = returnTo ?? (isEditing ? detailHref : "/lista-espera");
+  const editHref = returnTo
+    ? `/solicitacoes/${solicitation.id}?editar=1&return_to=${encodeURIComponent(returnTo)}`
+    : `${detailHref}?editar=1`;
   const boundUpdate = updateSolicitation.bind(null, solicitation.id);
 
   return (
@@ -43,7 +54,7 @@ export default async function SolicitationDetailsPage({ params, searchParams }: 
         action={
           <div className="flex gap-2">
             <Link
-              href="/lista-espera"
+              href={backHref}
               className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               <ArrowLeft size={15} aria-hidden="true" />
@@ -51,7 +62,7 @@ export default async function SolicitationDetailsPage({ params, searchParams }: 
             </Link>
             {!isEditing ? (
               <Link
-                href={`/solicitacoes/${solicitation.id}?editar=1`}
+                href={editHref}
                 className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-slate-900 px-3 text-xs font-semibold text-white transition hover:bg-slate-800"
               >
                 <Edit size={15} aria-hidden="true" />
@@ -73,7 +84,13 @@ export default async function SolicitationDetailsPage({ params, searchParams }: 
       ) : null}
 
       {isEditing ? (
-        <SolicitationForm action={boundUpdate} initialData={solicitation} options={options} mode="edit" />
+        <SolicitationForm
+          action={boundUpdate}
+          cancelHref={returnTo ?? detailHref}
+          initialData={solicitation}
+          options={options}
+          mode="edit"
+        />
       ) : (
         <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
           <section className="grid gap-3 sm:grid-cols-2">
@@ -107,7 +124,7 @@ export default async function SolicitationDetailsPage({ params, searchParams }: 
             </p>
             <form action={updateStatus} className="mt-4 grid gap-2">
               <input type="hidden" name="id" value={solicitation.id} />
-              <input type="hidden" name="return_to" value={`/solicitacoes/${solicitation.id}`} />
+              <input type="hidden" name="return_to" value={currentDetailsHref} />
               <label className="grid gap-1.5 text-xs font-semibold text-slate-700">
                 Alterar status
                 <select

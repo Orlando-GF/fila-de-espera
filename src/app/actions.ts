@@ -178,6 +178,15 @@ async function resolveRegistryLabels(supabase: SupabaseServerClient, formData: F
   const procedimentoId = requiredText(formData, "procedimento_id");
   const profissionalId = text(formData, "profissional_solicitante_id");
 
+  return resolveRegistryLabelsByIds(supabase, especialidadeId, procedimentoId, profissionalId);
+}
+
+async function resolveRegistryLabelsByIds(
+  supabase: SupabaseServerClient,
+  especialidadeId: string,
+  procedimentoId: string,
+  profissionalId: string | null,
+) {
   const [especialidade, procedimento, profissional] = await Promise.all([
     supabase.from("especialidades").select("id, nome").eq("id", especialidadeId).single(),
     supabase.from("procedimentos").select("id, nome").eq("id", procedimentoId).single(),
@@ -200,29 +209,65 @@ async function resolveRegistryLabels(supabase: SupabaseServerClient, formData: F
   };
 }
 
+function solicitationItems(formData: FormData) {
+  const atendimentoIds = formData
+    .getAll("atendimento_id")
+    .map((value) => String(value).trim())
+    .filter(Boolean);
+
+  if (!atendimentoIds.length) {
+    return [
+      {
+        especialidadeId: requiredText(formData, "especialidade_id"),
+        procedimentoId: requiredText(formData, "procedimento_id"),
+        prioridade: requiredText(formData, "prioridade") as Prioridade,
+        judicial: formData.get("judicial") === "on",
+        observacao: capitalizeWords(text(formData, "observacao")),
+      },
+    ];
+  }
+
+  return [...new Set(atendimentoIds)].map((id) => ({
+    especialidadeId: requiredText(formData, `especialidade_id_${id}`),
+    procedimentoId: requiredText(formData, `procedimento_id_${id}`),
+    prioridade: requiredText(formData, `prioridade_${id}`) as Prioridade,
+    judicial: formData.get(`judicial_${id}`) === "on",
+    observacao: capitalizeWords(text(formData, `observacao_${id}`)),
+  }));
+}
+
 export async function createSolicitation(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const patient = await resolvePatient(supabase, formData);
-  const registries = await resolveRegistryLabels(supabase, formData);
-  const payload = {
-    data_entrada: requiredText(formData, "data_entrada"),
+  const dataEntrada = requiredText(formData, "data_entrada");
+  const profissionalId = text(formData, "profissional_solicitante_id");
+  const items = solicitationItems(formData);
+  const registries = await Promise.all(
+    items.map((item) => resolveRegistryLabelsByIds(supabase, item.especialidadeId, item.procedimentoId, profissionalId)),
+  );
+  const payload = items.map((item, index) => ({
+    data_entrada: dataEntrada,
     ...patient,
-    ...registries,
-    prioridade: requiredText(formData, "prioridade") as Prioridade,
-    judicial: formData.get("judicial") === "on",
-    observacao: capitalizeWords(text(formData, "observacao")),
+    ...registries[index],
+    prioridade: item.prioridade,
+    judicial: item.judicial,
+    observacao: item.observacao,
     status: "aguardando" as FilaStatus,
-  };
+  }));
 
   const { error } = await supabase.from("fila_espera").insert(payload);
   if (error) throw error;
 
   refreshWaitlist();
-  redirectWithMessage("/lista-espera", "Solicitação criada com sucesso.");
+  redirectWithMessage(
+    "/lista-espera",
+    payload.length === 1 ? "Solicitação criada com sucesso." : `${payload.length} solicitações criadas com sucesso.`,
+  );
 }
 
 export async function updateSolicitation(id: string, formData: FormData) {
   const supabase = await createSupabaseServerClient();
+  const returnTo = returnPath(formData, `/solicitacoes/${id}`);
   const patient = await resolvePatient(supabase, formData);
   const registries = await resolveRegistryLabels(supabase, formData);
   const payload = {
@@ -240,7 +285,7 @@ export async function updateSolicitation(id: string, formData: FormData) {
 
   refreshWaitlist();
   revalidatePath(`/solicitacoes/${id}`);
-  redirectWithMessage(`/solicitacoes/${id}`, "Solicitação atualizada com sucesso.");
+  redirectWithMessage(returnTo, "Solicitação atualizada com sucesso.");
 }
 
 export async function updateStatus(formData: FormData) {

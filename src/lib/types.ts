@@ -88,7 +88,6 @@ export type StatusFila = {
 };
 
 export type RegistryOptions = {
-  pacientes: Paciente[];
   especialidades: Especialidade[];
   procedimentos: Procedimento[];
   profissionais: ProfissionalSolicitante[];

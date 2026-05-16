@@ -3,7 +3,6 @@ import type {
   Especialidade,
   FilaEspera,
   FilaFilters,
-  Paciente,
   Procedimento,
   ProfissionalSolicitante,
   RegistryOptions,
@@ -200,7 +199,6 @@ export async function getFilterOptions() {
 export async function getRegistryOptions(): Promise<RegistryOptions> {
   if (!isSupabaseConfigured()) {
     return {
-      pacientes: [],
       especialidades: [],
       procedimentos: [],
       profissionais: [],
@@ -209,11 +207,7 @@ export async function getRegistryOptions(): Promise<RegistryOptions> {
   }
 
   const supabase = await createSupabaseServerClient();
-  const [pacientes, especialidades, procedimentos, profissionais, status] = await Promise.all([
-    supabase
-      .from("pacientes")
-      .select("id, nome, prontuario, telefone, responsavel")
-      .order("nome", { ascending: true }),
+  const [especialidades, procedimentos, profissionais, status] = await Promise.all([
     supabase
       .from("especialidades")
       .select("id, nome, ativo")
@@ -236,11 +230,10 @@ export async function getRegistryOptions(): Promise<RegistryOptions> {
       .order("criado_em", { ascending: true }),
   ]);
 
-  const errors = [pacientes.error, especialidades.error, procedimentos.error, profissionais.error, status.error].filter(Boolean);
+  const errors = [especialidades.error, procedimentos.error, profissionais.error, status.error].filter(Boolean);
   if (errors[0]) throw errors[0];
 
   return {
-    pacientes: (pacientes.data ?? []) as Paciente[],
     especialidades: (especialidades.data ?? []) as Especialidade[],
     procedimentos: (procedimentos.data ?? []) as Procedimento[],
     profissionais: (profissionais.data ?? []) as ProfissionalSolicitante[],

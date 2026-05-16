@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, Search, Save } from "lucide-react";
+import { CheckCircle2, Loader2, Plus, Search, Save, Trash2 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { capitalizeWords, formatPhone, onlyDigits, stripDigits } from "@/lib/text";
 import {
@@ -18,6 +18,10 @@ const inputClass =
 const selectClass =
   "select-control h-9 w-full rounded-md border border-[var(--border)] px-2.5 pr-10 text-xs font-semibold text-slate-950 outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-emerald-100";
 const labelClass = "text-xs font-bold text-slate-700";
+
+type AttendanceItem = {
+  id: string;
+};
 
 function Field({
   label,
@@ -61,14 +65,101 @@ function Field({
   );
 }
 
+function AttendanceFields({
+  item,
+  index,
+  canRemove,
+  options,
+  onRemove,
+}: {
+  item: AttendanceItem;
+  index: number;
+  canRemove: boolean;
+  options: RegistryOptions;
+  onRemove: (id: string) => void;
+}) {
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-[#f8fbfb] p-3">
+      <input type="hidden" name="atendimento_id" value={item.id} />
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-xs font-bold text-slate-900">Atendimento {String(index + 1).padStart(2, "0")}</h3>
+        </div>
+        {canRemove ? (
+          <button
+            type="button"
+            className="inline-grid size-8 shrink-0 place-items-center rounded-md border border-rose-200 bg-white text-rose-700 transition hover:bg-rose-50"
+            title="Remover atendimento"
+            aria-label={`Remover atendimento ${index + 1}`}
+            onClick={() => onRemove(item.id)}
+          >
+            <Trash2 size={14} aria-hidden="true" />
+          </button>
+        ) : null}
+      </div>
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-[minmax(210px,1fr)_minmax(210px,1fr)_150px_150px]">
+        <label className="grid gap-1.5">
+          <span className={labelClass}>Especialidade</span>
+          <select className={selectClass} name={`especialidade_id_${item.id}`} required defaultValue="">
+            <option value="">Selecione</option>
+            {options.especialidades.map((especialidade) => (
+              <option key={especialidade.id} value={especialidade.id}>
+                {especialidade.nome}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="grid gap-1.5">
+          <span className={labelClass}>Procedimento</span>
+          <select className={selectClass} name={`procedimento_id_${item.id}`} required defaultValue="">
+            <option value="">Selecione</option>
+            {options.procedimentos.map((procedimento) => (
+              <option key={procedimento.id} value={procedimento.id}>
+                {procedimento.nome}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="grid gap-1.5">
+          <span className={labelClass}>Prioridade</span>
+          <select className={selectClass} name={`prioridade_${item.id}`} defaultValue="normal">
+            {PRIORITIES.map((priority) => (
+              <option key={priority} value={priority}>
+                {labelize(priority)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex h-9 items-center gap-2 self-end rounded-md border border-[var(--border)] bg-white px-2.5 text-xs font-bold text-slate-700">
+          <input
+            type="checkbox"
+            name={`judicial_${item.id}`}
+            className="size-4 rounded border-slate-300 text-[var(--primary)] focus:ring-emerald-500"
+          />
+          Judicial
+        </label>
+        <label className="grid gap-1.5 md:col-span-2 lg:col-span-4">
+          <span className={labelClass}>Observação</span>
+          <textarea
+            className="min-h-16 w-full rounded-md border border-[var(--border)] bg-white px-2.5 py-2 text-xs font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[var(--primary)] focus:ring-2 focus:ring-emerald-100"
+            name={`observacao_${item.id}`}
+          />
+        </label>
+      </div>
+    </div>
+  );
+}
+
 export function SolicitationForm({
   action,
+  cancelHref,
   initialData,
   options,
   mode = "create",
   variant = "page",
 }: {
   action: (formData: FormData) => void | Promise<void>;
+  cancelHref?: string;
   initialData?: FilaEspera;
   options: RegistryOptions;
   mode?: "create" | "edit";
@@ -91,7 +182,18 @@ export function SolicitationForm({
   const [lookupState, setLookupState] = useState<"idle" | "loading" | "found" | "not-found">(
     initialData?.paciente_id ? "found" : "idle",
   );
-  const [especialidadeId, setEspecialidadeId] = useState(initialData?.especialidade_id ?? "");
+  const [attendanceItems, setAttendanceItems] = useState<AttendanceItem[]>([{ id: "1" }]);
+  const [nextAttendanceId, setNextAttendanceId] = useState(2);
+
+  function addAttendance() {
+    const id = String(nextAttendanceId);
+    setAttendanceItems((current) => [...current, { id }]);
+    setNextAttendanceId((current) => current + 1);
+  }
+
+  function removeAttendance(id: string) {
+    setAttendanceItems((current) => (current.length > 1 ? current.filter((item) => item.id !== id) : current));
+  }
 
   useEffect(() => {
     const value = prontuario.trim();
@@ -126,6 +228,7 @@ export function SolicitationForm({
     responsavel: initialData?.responsavel ?? "",
   };
   const isPanel = variant === "panel";
+  const resolvedCancelHref = cancelHref ?? (mode === "edit" && initialData?.id ? `/solicitacoes/${initialData.id}` : "/lista-espera");
 
   return (
     <form
@@ -137,6 +240,7 @@ export function SolicitationForm({
       }
     >
       <input type="hidden" name="paciente_id" value={foundPatient?.id ?? ""} />
+      <input type="hidden" name="return_to" value={resolvedCancelHref} />
       <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-lg border border-emerald-200 bg-[#e7f8f1] p-3 md:col-span-2">
           <label className="grid gap-1.5">
@@ -181,7 +285,7 @@ export function SolicitationForm({
           key={foundPatient?.id ?? `novo-${prontuario}`}
           className="rounded-lg border border-[var(--border)] bg-[#f8fbfb] p-3 md:col-span-2"
         >
-          <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs font-bold text-slate-900">Dados do paciente</p>
             <p className="text-xs font-medium text-[var(--muted)]">
               {foundPatient
@@ -189,7 +293,7 @@ export function SolicitationForm({
                 : "Preencha quando o prontuário ainda não existir no cadastro."}
             </p>
           </div>
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-[minmax(260px,1fr)_minmax(150px,0.45fr)_minmax(220px,0.8fr)]">
             <Field
               label="Nome do paciente"
               name="nome_paciente"
@@ -200,85 +304,142 @@ export function SolicitationForm({
             <Field label="Responsável" name="responsavel" defaultValue={patientDefaults.responsavel} />
           </div>
         </div>
-        <section className="rounded-lg border border-[var(--border)] bg-white p-3 md:col-span-2">
-          <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-xs font-bold text-slate-900">Dados da solicitação</h2>
-              <p className="mt-1 text-xs font-medium text-[var(--muted)]">Data, área, procedimento e prioridade da guia.</p>
+        {mode === "create" ? (
+          <>
+            <section className="rounded-lg border border-[var(--border)] bg-white p-3 md:col-span-2">
+              <div className="mb-2">
+                <h2 className="text-xs font-bold text-slate-900">Dados da guia</h2>
+                <p className="mt-1 text-xs font-medium text-[var(--muted)]">
+                  Data de entrada e origem valem para todos os atendimentos abaixo.
+                </p>
+              </div>
+              <div className="grid gap-3 lg:grid-cols-[180px_minmax(280px,1fr)]">
+                <Field
+                  label="Data de entrada"
+                  name="data_entrada"
+                  type="date"
+                  required
+                  defaultValue={today}
+                />
+                <label className="grid gap-1.5">
+                  <span className={labelClass}>Profissional solicitante</span>
+                  <select className={selectClass} name="profissional_solicitante_id" defaultValue="">
+                    <option value="">Não informado</option>
+                    {options.profissionais.map((profissional) => (
+                      <option key={profissional.id} value={profissional.id}>
+                        {profissional.nome}
+                        {profissional.cargo ? ` - ${profissional.cargo}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <section className="rounded-lg border border-[var(--border)] bg-white p-3 md:col-span-2">
+              <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-xs font-bold text-slate-900">Atendimentos solicitados</h2>
+                  <p className="mt-1 text-xs font-medium text-[var(--muted)]">
+                    Adicione uma linha para cada especialidade ou procedimento da guia.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-[var(--border)] bg-white px-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+                  onClick={addAttendance}
+                >
+                  <Plus size={14} aria-hidden="true" />
+                  Adicionar atendimento
+                </button>
+              </div>
+              <div className="grid gap-2">
+                {attendanceItems.map((item, index) => (
+                  <AttendanceFields
+                    key={item.id}
+                    item={item}
+                    index={index}
+                    canRemove={attendanceItems.length > 1}
+                    options={options}
+                    onRemove={removeAttendance}
+                  />
+                ))}
+              </div>
+            </section>
+          </>
+        ) : (
+          <section className="rounded-lg border border-[var(--border)] bg-white p-3 md:col-span-2">
+            <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-xs font-bold text-slate-900">Dados da solicitação</h2>
+                <p className="mt-1 text-xs font-medium text-[var(--muted)]">Data, área, procedimento e prioridade da guia.</p>
+              </div>
             </div>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <Field
-              label="Data de entrada"
-              name="data_entrada"
-              type="date"
-              required
-              defaultValue={initialData?.data_entrada ?? today}
-            />
-            <label className="grid gap-1.5">
-              <span className={labelClass}>Especialidade</span>
-              <select
-                className={selectClass}
-                name="especialidade_id"
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-[180px_minmax(210px,1fr)_minmax(210px,1fr)_150px]">
+              <Field
+                label="Data de entrada"
+                name="data_entrada"
+                type="date"
                 required
-                value={especialidadeId}
-                onChange={(event) => setEspecialidadeId(event.target.value)}
-              >
-                <option value="">Selecione</option>
-                {options.especialidades.map((especialidade) => (
-                  <option key={especialidade.id} value={especialidade.id}>
-                    {especialidade.nome}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-1.5">
-              <span className={labelClass}>Procedimento</span>
-              <select className={selectClass} name="procedimento_id" required defaultValue={initialData?.procedimento_id ?? ""}>
-                <option value="">Selecione</option>
-                {options.procedimentos.map((procedimento) => (
-                  <option key={procedimento.id} value={procedimento.id}>
-                    {procedimento.nome}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-1.5">
-              <span className={labelClass}>Prioridade</span>
-              <select className={selectClass} name="prioridade" defaultValue={initialData?.prioridade ?? "normal"}>
-                {PRIORITIES.map((priority) => (
-                  <option key={priority} value={priority}>
-                    {labelize(priority)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-1.5 xl:col-span-2">
-              <span className={labelClass}>Profissional solicitante</span>
-              <select
-                className={selectClass}
-                name="profissional_solicitante_id"
-                defaultValue={initialData?.profissional_solicitante_id ?? ""}
-              >
-                <option value="">Não informado</option>
-                {options.profissionais.map((profissional) => (
-                  <option key={profissional.id} value={profissional.id}>
-                    {profissional.nome}
-                    {profissional.cargo ? ` - ${profissional.cargo}` : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex h-9 items-center gap-2 self-end rounded-md border border-[var(--border)] bg-white px-2.5 text-xs font-bold text-slate-700">
-              <input
-                type="checkbox"
-                name="judicial"
-                defaultChecked={initialData?.judicial ?? false}
-                className="size-4 rounded border-slate-300 text-[var(--primary)] focus:ring-emerald-500"
+                defaultValue={initialData?.data_entrada ?? today}
               />
-              Demanda judicial
-            </label>
-            {mode === "edit" ? (
+              <label className="grid gap-1.5">
+                <span className={labelClass}>Especialidade</span>
+                <select className={selectClass} name="especialidade_id" required defaultValue={initialData?.especialidade_id ?? ""}>
+                  <option value="">Selecione</option>
+                  {options.especialidades.map((especialidade) => (
+                    <option key={especialidade.id} value={especialidade.id}>
+                      {especialidade.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1.5">
+                <span className={labelClass}>Procedimento</span>
+                <select className={selectClass} name="procedimento_id" required defaultValue={initialData?.procedimento_id ?? ""}>
+                  <option value="">Selecione</option>
+                  {options.procedimentos.map((procedimento) => (
+                    <option key={procedimento.id} value={procedimento.id}>
+                      {procedimento.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1.5">
+                <span className={labelClass}>Prioridade</span>
+                <select className={selectClass} name="prioridade" defaultValue={initialData?.prioridade ?? "normal"}>
+                  {PRIORITIES.map((priority) => (
+                    <option key={priority} value={priority}>
+                      {labelize(priority)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1.5 lg:col-span-2">
+                <span className={labelClass}>Profissional solicitante</span>
+                <select
+                  className={selectClass}
+                  name="profissional_solicitante_id"
+                  defaultValue={initialData?.profissional_solicitante_id ?? ""}
+                >
+                  <option value="">Não informado</option>
+                  {options.profissionais.map((profissional) => (
+                    <option key={profissional.id} value={profissional.id}>
+                      {profissional.nome}
+                      {profissional.cargo ? ` - ${profissional.cargo}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex h-9 items-center gap-2 self-end rounded-md border border-[var(--border)] bg-white px-2.5 text-xs font-bold text-slate-700">
+                <input
+                  type="checkbox"
+                  name="judicial"
+                  defaultChecked={initialData?.judicial ?? false}
+                  className="size-4 rounded border-slate-300 text-[var(--primary)] focus:ring-emerald-500"
+                />
+                Judicial
+              </label>
               <label className="grid gap-1.5">
                 <span className={labelClass}>Status</span>
                 <select className={selectClass} name="status" defaultValue={initialData?.status ?? "aguardando"}>
@@ -289,24 +450,24 @@ export function SolicitationForm({
                   ))}
                 </select>
               </label>
-            ) : null}
-            <label className="grid gap-1.5 md:col-span-2 xl:col-span-4">
-              <span className={labelClass}>Observação</span>
-              <textarea
-                className="min-h-20 w-full rounded-md border border-[var(--border)] bg-white px-2.5 py-2 text-xs font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[var(--primary)] focus:ring-2 focus:ring-emerald-100"
-                name="observacao"
-                defaultValue={initialData?.observacao ?? ""}
-              />
-            </label>
-          </div>
-        </section>
+              <label className="grid gap-1.5 md:col-span-2 lg:col-span-4">
+                <span className={labelClass}>Observação</span>
+                <textarea
+                  className="min-h-20 w-full rounded-md border border-[var(--border)] bg-white px-2.5 py-2 text-xs font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[var(--primary)] focus:ring-2 focus:ring-emerald-100"
+                  name="observacao"
+                  defaultValue={initialData?.observacao ?? ""}
+                />
+              </label>
+            </div>
+          </section>
+        )}
       </div>
       <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Link
-          href="/cadastros"
-          className={isPanel ? "hidden" : "inline-flex h-9 items-center justify-center rounded-md border border-[var(--border)] bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50"}
+          href={resolvedCancelHref}
+          className="inline-flex h-9 items-center justify-center rounded-md border border-[var(--border)] bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
         >
-          Cadastros
+          Cancelar
         </Link>
         <button className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-[var(--primary)] px-3 text-xs font-bold text-white transition hover:bg-[var(--primary-strong)]">
           <Save size={15} aria-hidden="true" />

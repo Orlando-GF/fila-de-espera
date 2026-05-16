@@ -1,17 +1,14 @@
 import Link from "next/link";
-import { Check, Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { ReactNode } from "react";
 import {
   createEspecialidade,
   createProcedimento,
   createProfissionalSolicitante,
   createStatusLabel,
-  deleteRegistryItem,
-  updateRegistryItem,
-  updateStatusLabel,
 } from "@/app/actions";
 import { AppShell } from "@/components/app-shell";
-import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { RegistryProfessionalRow, RegistrySingleFieldRow } from "@/components/registry-editable-row";
 import { TitleInput } from "@/components/title-input";
 import { getRegistryOptions } from "@/lib/fila-espera";
 
@@ -59,43 +56,6 @@ function AddButton() {
       <Plus size={14} aria-hidden="true" />
       Adicionar
     </button>
-  );
-}
-
-function SaveButton() {
-  return (
-    <button className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-[var(--border)] bg-white px-3 text-xs font-semibold text-[var(--foreground)] transition hover:bg-slate-50">
-      <Check size={14} aria-hidden="true" />
-      Salvar
-    </button>
-  );
-}
-
-function DeleteButton({
-  kind,
-  id,
-  returnTo,
-}: {
-  kind: string;
-  id: string;
-  returnTo: string;
-}) {
-  return (
-    <form action={deleteRegistryItem}>
-      <input type="hidden" name="kind" value={kind} />
-      <input type="hidden" name="id" value={id} />
-      <input type="hidden" name="return_to" value={returnTo} />
-      <ConfirmSubmitButton
-        dialogTitle="Excluir cadastro"
-        message="Deseja realmente excluir este cadastro da lista? Se ele estiver em uso na fila, o sistema vai bloquear a exclusão."
-        confirmLabel="Excluir"
-        className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50"
-        title="Excluir"
-      >
-        <Trash2 size={14} aria-hidden="true" />
-        Excluir
-      </ConfirmSubmitButton>
-    </form>
   );
 }
 
@@ -166,43 +126,6 @@ function RegistryNav({
   );
 }
 
-function SingleFieldRow({
-  kind,
-  id,
-  value,
-  returnTo,
-  allowNumbers = false,
-  action = updateRegistryItem,
-}: {
-  kind: string;
-  id: string;
-  value: string;
-  returnTo: string;
-  allowNumbers?: boolean;
-  action?: (formData: FormData) => void | Promise<void>;
-}) {
-  return (
-    <div className="border-t border-[var(--border)] px-3 py-2 first:border-t-0">
-      <div className="flex flex-wrap items-center gap-2">
-        <form action={action} className="flex min-w-0 flex-1 items-center gap-2">
-          <input type="hidden" name="kind" value={kind} />
-          <input type="hidden" name="id" value={id} />
-          <input type="hidden" name="return_to" value={returnTo} />
-          <TitleInput
-            className={`${inputClass} flex-1`}
-            name="nome"
-            defaultValue={value}
-            required
-            allowNumbers={allowNumbers}
-          />
-          <SaveButton />
-        </form>
-        <DeleteButton kind={kind} id={id} returnTo={returnTo} />
-      </div>
-    </div>
-  );
-}
-
 function EmptyState() {
   return (
     <div className="m-3 rounded-md border border-dashed border-[var(--border)] bg-[var(--surface-soft)] px-4 py-6 text-center text-xs font-semibold text-[var(--muted)]">
@@ -268,7 +191,7 @@ export default async function RegistriesPage({ searchParams }: Props) {
               <div>
                 {options.especialidades.length ? (
                   options.especialidades.map((item) => (
-                    <SingleFieldRow
+                    <RegistrySingleFieldRow
                       key={item.id}
                       kind="especialidade"
                       id={item.id}
@@ -293,7 +216,7 @@ export default async function RegistriesPage({ searchParams }: Props) {
               <div>
                 {options.procedimentos.length ? (
                   options.procedimentos.map((item) => (
-                    <SingleFieldRow
+                    <RegistrySingleFieldRow
                       key={item.id}
                       kind="procedimento"
                       id={item.id}
@@ -320,19 +243,13 @@ export default async function RegistriesPage({ searchParams }: Props) {
               <div>
                 {options.profissionais.length ? (
                   options.profissionais.map((item) => (
-                    <div key={item.id} className="border-t border-[var(--border)] px-3 py-2 first:border-t-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <form action={updateRegistryItem} className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                          <input type="hidden" name="kind" value="profissional" />
-                          <input type="hidden" name="id" value={item.id} />
-                          <input type="hidden" name="return_to" value={returnTo} />
-                          <TitleInput className={`${inputClass} min-w-56 flex-1`} name="nome" defaultValue={item.nome} required />
-                          <TitleInput className={`${inputClass} min-w-44 flex-1`} name="cargo" defaultValue={item.cargo ?? ""} />
-                          <SaveButton />
-                        </form>
-                        <DeleteButton kind="profissional" id={item.id} returnTo={returnTo} />
-                      </div>
-                    </div>
+                    <RegistryProfessionalRow
+                      key={item.id}
+                      id={item.id}
+                      nome={item.nome}
+                      cargo={item.cargo ?? ""}
+                      returnTo={returnTo}
+                    />
                   ))
                 ) : (
                   <EmptyState />
@@ -351,13 +268,12 @@ export default async function RegistriesPage({ searchParams }: Props) {
               <div>
                 {options.status.length ? (
                   options.status.map((item) => (
-                    <SingleFieldRow
+                    <RegistrySingleFieldRow
                       key={item.id}
                       kind="status"
                       id={item.id}
                       value={item.nome}
                       returnTo={returnTo}
-                      action={updateStatusLabel}
                     />
                   ))
                 ) : (

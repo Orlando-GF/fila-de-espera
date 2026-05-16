@@ -22,6 +22,23 @@ function pageNumber(value: string | string[] | undefined) {
   return Number.isFinite(parsed) ? Math.max(1, Math.floor(parsed)) : 1;
 }
 
+function waitlistReturnPath(params: Record<string, string | string[] | undefined>) {
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (key === "msg" || key === "erro") continue;
+    const values = Array.isArray(value) ? value : [value];
+
+    for (const item of values) {
+      const normalized = String(item ?? "").trim();
+      if (normalized) query.append(key, normalized);
+    }
+  }
+
+  const queryString = query.toString();
+  return queryString ? `/lista-espera?${queryString}` : "/lista-espera";
+}
+
 export default async function WaitlistPage({ searchParams }: Props) {
   const params = (await searchParams) ?? {};
   const requestedPage = pageNumber(params.pagina);
@@ -35,6 +52,7 @@ export default async function WaitlistPage({ searchParams }: Props) {
   };
   const message = first(params.msg);
   const error = first(params.erro);
+  const returnTo = waitlistReturnPath(params);
 
   const [{ rows, configMissing, page, pageSize, total, totalPages }, options] = await Promise.all([
     getWaitlist(filters, requestedPage),
@@ -68,7 +86,7 @@ export default async function WaitlistPage({ searchParams }: Props) {
         </div>
       ) : null}
       <WaitlistFilters filters={filters} options={options} />
-      <WaitlistTable rows={rows} statuses={options.status} startIndex={(page - 1) * pageSize} />
+      <WaitlistTable rows={rows} statuses={options.status} startIndex={(page - 1) * pageSize} returnTo={returnTo} />
       <Pagination page={page} pageSize={pageSize} total={total} totalPages={totalPages} params={params} />
     </AppShell>
   );
