@@ -3,7 +3,7 @@ import { Edit, Eye, MoreHorizontal, PhoneCall } from "lucide-react";
 import { updateStatus } from "@/app/actions";
 import { formatDate } from "@/lib/formatters";
 import { type FilaEspera, type StatusFila } from "@/lib/types";
-import { JudicialBadge, PriorityBadge, StatusBadge } from "@/components/badges";
+import { JudicialBadge, PriorityBadge, StatusBadge, WaitDaysBadge } from "@/components/badges";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { DropdownPanel } from "@/components/dropdown-panel";
 
@@ -111,8 +111,9 @@ export function WaitlistTable({
                 <StatusBadge status={row.status} label={row.status_nome} />
                 {row.judicial ? <JudicialBadge /> : null}
               </div>
-              <p className="mt-1.5 text-xs font-bold text-[var(--muted)]">
-                Entrada: {formatDate(row.data_entrada)}
+              <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs font-bold text-[var(--muted)]">
+                <span>Entrada: {formatDate(row.data_entrada)}</span>
+                <WaitDaysBadge date={row.data_entrada} compact />
               </p>
             </div>
 

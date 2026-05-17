@@ -1,4 +1,4 @@
-import { labelize } from "@/lib/formatters";
+import { daysSinceDate, formatWaitDays, labelize } from "@/lib/formatters";
 import type { Prioridade } from "@/lib/types";
 
 const statusClass: Record<string, string> = {
@@ -36,4 +36,18 @@ export function PriorityBadge({ prioridade }: { prioridade: Prioridade }) {
 
 export function JudicialBadge() {
   return <Badge label="Judicial" className="bg-blue-50 text-blue-800 ring-blue-200" />;
+}
+
+export function WaitDaysBadge({ date, compact = false }: { date: string; compact?: boolean }) {
+  const days = daysSinceDate(date) ?? 0;
+  const className =
+    days >= 180
+      ? "bg-rose-50 text-rose-800 ring-rose-200"
+      : days >= 90
+        ? "bg-orange-50 text-orange-800 ring-orange-200"
+        : days >= 30
+          ? "bg-amber-50 text-amber-800 ring-amber-200"
+          : "bg-slate-100 text-slate-700 ring-slate-200";
+
+  return <Badge label={formatWaitDays(date, compact)} className={className} />;
 }

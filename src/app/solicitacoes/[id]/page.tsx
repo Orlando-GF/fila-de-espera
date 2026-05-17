@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Edit } from "lucide-react";
 import { updateSolicitation, updateStatus } from "@/app/actions";
 import { AppShell } from "@/components/app-shell";
-import { JudicialBadge, PriorityBadge, StatusBadge } from "@/components/badges";
+import { JudicialBadge, PriorityBadge, StatusBadge, WaitDaysBadge } from "@/components/badges";
 import { PageHeader } from "@/components/page-header";
 import { SolicitationForm } from "@/components/solicitation-form";
 import { formatDate, formatDateTime } from "@/lib/formatters";
@@ -102,6 +102,7 @@ export default async function SolicitationDetailsPage({ params, searchParams }: 
             <DetailItem label="Procedimento" value={solicitation.procedimento} />
             <DetailItem label="Profissional solicitante" value={solicitation.profissional_solicitante} />
             <DetailItem label="Data de entrada" value={formatDate(solicitation.data_entrada)} />
+            <DetailItem label="Dias na fila" value={<WaitDaysBadge date={solicitation.data_entrada} />} />
             <DetailItem label="Criado em" value={formatDateTime(solicitation.criado_em)} />
             <DetailItem label="Atualizado em" value={formatDateTime(solicitation.atualizado_em)} />
             <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:col-span-2">

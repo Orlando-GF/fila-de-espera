@@ -2,7 +2,7 @@ import { PhoneCall } from "lucide-react";
 import { callNextPatient } from "@/app/actions";
 import { formatDate } from "@/lib/formatters";
 import type { FilaEspera } from "@/lib/types";
-import { PriorityBadge } from "@/components/badges";
+import { PriorityBadge, WaitDaysBadge } from "@/components/badges";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 
 export function NextPatientCard({ patient }: { patient: FilaEspera }) {
@@ -16,7 +16,10 @@ export function NextPatientCard({ patient }: { patient: FilaEspera }) {
         <PriorityBadge prioridade={patient.prioridade} />
       </div>
       <p className="mt-3 text-base font-bold text-[var(--foreground)]">{patient.nome_paciente}</p>
-      <p className="mt-0.5 text-xs font-medium text-[var(--muted)]">Entrada: {formatDate(patient.data_entrada)}</p>
+      <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs font-medium text-[var(--muted)]">
+        <span>Entrada: {formatDate(patient.data_entrada)}</span>
+        <WaitDaysBadge date={patient.data_entrada} compact />
+      </p>
       <form action={callNextPatient} className="mt-3">
         <input type="hidden" name="id" value={patient.id} />
         <input type="hidden" name="nome_paciente" value={patient.nome_paciente} />
